@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mix NFT Rewards</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 10px;
+      background: #f5f5f5;
+    }
+
+    .container {
+      max-width: 480px;
+      margin: auto;
+      background: #fff;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      font-size: 20px;
+      text-align: center;
+      margin-bottom: 15px;
+    }
+
+    .participant-card {
+      background: #f9f9f9;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .participant-info {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .participant-info span {
+      margin: 2px 0;
+      font-size: 14px;
+    }
+
+    .wins {
+      font-weight: bold;
+      color: #007bff;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      margin-bottom: 10px;
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      background-color: #007bff;
+      color: white;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 18px; }
+      .participant-info span { font-size: 12px; }
+      button { font-size: 14px; padding: 10px; }
+      input, textarea { font-size: 12px; padding: 6px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Mix NFT Rewards Admin</h1>
+
+    <label>Пароль администратора:</label>
+    <input type="password" id="adminPassword" placeholder="Введите пароль">
+    <button onclick="loginAdmin()">Войти в админку</button>
+
+    <div id="adminPanel" style="display:none;">
+      <h2>Участники</h2>
+      <div id="participantsList"></div>
+
+      <label>Импорт CSV (username,points,wins):</label>
+      <textarea id="csvInput" rows="3" placeholder="@alex,150,1"></textarea>
+      <button onclick="importCSV()">Импортировать</button>
+
+      <button onclick="addWinner()">Добавить победителя</button>
+      <button onclick="addThreeWinners()">Добавить 3 победителей за неделю</button>
+
+      <button onclick="exportJSON()">Экспорт JSON</button>
+      <button onclick="exportCSV()">Экспорт CSV</button>
+    </div>
+  </div>
+
+  <script>
+    const ADMIN_PASSWORD = 'mixadmin';
+    let participants = [];
+
+    function loginAdmin() {
+      const pwd = document.getElementById('adminPassword').value;
+      if(pwd === ADMIN_PASSWORD) {
+        document.getElementById('adminPanel').style.display = 'block';
+        alert('Вход выполнен');
+        renderCards();
+      } else {
+        alert('Неверный пароль');
+      }
+    }
+
+    function renderCards() {
+      // Сортировка участников по баллам (убывание)
+      participants.sort((a,b) => b.points - a.points);
+
+      const list = document.getElementById('participantsList');
+      list.innerHTML = '';
+      participants.forEach(p => {
+        const card = document.createElement('div');
+        card.className = 'participant-card';
+        card.innerHTML = `
+          <div class="participant-info">
+            <span><b>${p.username}</b></span>
+            <span>Баллы: ${p.points}</span>
+            <span>Выигрыши: <span class="wins">${p.wins}</span></span>
+          </div>
+        `;
+        list.appendChild(card);
+      });
+    }
+
+    function importCSV() {
+      const text = document.getElementById('csvInput').value;
+      const lines = text.split('\n');
+      lines.forEach(line => {
+        const [username, points, wins] = line.split(',');
+        if(username && points) {
+          participants.push({username: username.trim(), points: parseInt(points), wins: parseInt(wins)||0});
+        }
+      });
+      renderCards();
+      alert('Импорт завершён');
+    }
+
+    function addWinner() {
+      if(participants.length === 0) { alert('Нет участников'); return; }
+      participants[0].wins += 1; // добавляем победу самому активному
+      renderCards();
+    }
+
+    function addThreeWinners() {
+      for(let i=0;i<3;i++){
+        if(participants[i]) participants[i].wins +=1;
+      }
+      renderCards();
+    }
+
+    function exportJSON() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(participants));
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", "participants.json");
+      dlAnchor.click();
+    }
+
+    function exportCSV() {
+      let csv = 'username,points,wins\n';
+      participants.forEach(p => {
+        csv += `${p.username},${p.points},${p.wins}\n`;
+      });
+      const dataStr = "data:text/csv;charset=utf-8," + encodeURIComponent(csv);
+      const dlAnchor = document.createElement('a');
+      dlAnchor.setAttribute("href", dataStr);
+      dlAnchor.setAttribute("download", "participants.csv");
+      dlAnchor.click();
+    }
+  </script>
+</body>
+</html>
