@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Mix NFT Rewards — Mini App (Demo)</title>
+<style>
+  :root{--bg:#0f1720;--card:#0b1220;--muted:#9aa4b2;--accent:#E8B97A;--border:rgba(255,255,255,.06)}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,"Helvetica Neue",Arial;background:linear-gradient(180deg,#071021 0%, #06101a 100%);color:#e6eef6}
+  .app{max-width:1000px;margin:24px auto;padding:20px;border-radius:12px;background:rgba(255,255,255,0.02);box-shadow:0 6px 30px rgba(0,0,0,.6);border:1px solid var(--border)}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+  header h1{font-size:20px;margin:0;display:flex;gap:10px;align-items:center}
+  .logo{width:38px;height:38px;border-radius:8px;background:linear-gradient(135deg,#E8B97A,#e7a86a);display:flex;align-items:center;justify-content:center;color:#07101a;font-weight:700;box-shadow:inset 0 -2px 6px rgba(0,0,0,.2)}
+  nav{display:flex;gap:8px}
+  button, .btn{background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 12px;border-radius:8px;cursor:pointer}
+  button.primary{background:linear-gradient(90deg,#E8B97A,#e7a86a);color:#07101a;border:0}
+  .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.005));padding:12px;border-radius:10px;border:1px solid var(--border)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{padding:8px;text-align:left;border-bottom:1px dashed rgba(255,255,255,0.03)}
+  th{color:var(--muted);font-weight:600;font-size:12px}
+  tr.top1 td{background:linear-gradient(90deg, rgba(232,185,122,0.06), transparent)}
+  .small{font-size:12px;color:var(--muted)}
+  .admin-panel{display:flex;flex-direction:column;gap:8px}
+  textarea{width:100%;height:120px;background:transparent;border:1px dashed var(--border);color:#e6eef6;padding:8px;border-radius:8px}
+  input[type="file"]{color:var(--muted)}
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  .inline{display:flex;gap:8px;align-items:center}
+  .search{padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:#e6eef6}
+  .muted{color:var(--muted)}
+  .history{max-height:220px;overflow:auto}
+  footer{margin-top:14px;font-size:12px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+  .pill{padding:6px 8px;border-radius:999px;border:1px solid var(--border);font-size:12px;background:rgba(255,255,255,0.01)}
+  .winner-badge{background:rgba(232,185,122,0.12);padding:4px 8px;border-radius:8px;color:#E8B97A;font-weight:700}
+  .top-50-note{font-size:13px;color:var(--muted);margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="app" role="application" aria-label="Mix Rewards Mini App">
+  <header>
+    <h1><span class="logo">mix</span> Mix NFT Rewards <span class="small muted">— ТОП-50 & админка</span></h1>
+    <nav>
+      <button id="btn-admin" class="btn">Admin</button>
+      <button id="btn-import" class="btn">Import CSV</button>
+      <button id="btn-export" class="btn">Export JSON</button>
+    </nav>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div>
+            <div class="top-50-note">ТОП-50 участников (сортировка по баллам). Всего участников: <span id="total-count">0</span></div>
+            <input id="search" class="search" placeholder="Поиск по @username" />
+          </div>
+          <div class="inline">
+            <div class="pill">Показывать: <span id="display-count">50</span></div>
+          </div>
+        </div>
+
+        <div id="ranking-area">
+          <table id="ranking-table" aria-label="Ranking table">
+            <thead>
+              <tr><th>#</th><th>user</th><th>points</th><th>wins</th><th></th></tr>
+            </thead>
+            <tbody id="ranking-body">
+              <!-- rows -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h3 style="margin:4px 0">История розыгрышей</h3>
+        <div class="history" id="history"></div>
+      </div>
+    </div>
+
+    <aside>
+      <div class="card">
+        <h3 style="margin:4px 0">Мой профиль (пример)</h3>
+        <div id="profile" class="small muted">Открой профиль по username из таблицы — здесь показывается твоя статистика.</div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h3 style="margin:4px 0">Инструменты</h3>
+        <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+          <div class="small muted">Импорт</div>
+          <input type="file" id="file-input" accept=".csv,.json" />
+          <button id="btn-paste" class="btn">Вставить CSV вручную</button>
+          <div style="height:1px;border-top:1px dashed rgba(255,255,255,0.03)"></div>
+          <div class="small muted">Экспорт</div>
+          <button id="btn-export-csv" class="btn">Export CSV</button>
+          <button id="btn-export-json" class="btn">Export JSON</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <h3 style="margin:4px 0">Подсказки</h3>
+        <ul class="small muted">
+          <li>CSV формат: <code>username,points,wins</code></li>
+          <li>Можно публиковать Google Sheet как CSV и вставлять сюда.</li>
+          <li>Данные хранятся в localStorage — экспортируй для бэкапа.</li>
+        </ul>
+      </div>
+    </aside>
+  </div>
+
+  <footer>
+    <div class="muted">Mix • Telegram channel integration ready</div>
+    <div class="muted">Версия demo • Пароль admin по умолчанию: <code>mixadmin</code></div>
+  </footer>
+</div>
+
+<!-- Admin modal (simple) -->
+<div id="admin-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center">
+  <div style="width:760px;max-width:95%;background:var(--card);padding:16px;border-radius:12px;border:1px solid var(--border);">
+    <h2 style="margin:0 0 8px 0">Admin Panel</h2>
+    <div id="admin-login" class="admin-panel">
+      <div class="small muted">Введите пароль администратора</div>
+      <input id="admin-password" placeholder="Пароль" style="padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:#e6eef6" />
+      <div style="display:flex;gap:8px">
+        <button id="admin-login-btn" class="primary">Login</button>
+        <button id="admin-cancel" class="btn">Close</button>
+      </div>
+    </div>
+
+    <div id="admin-ui" style="display:none" class="admin-panel">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="small muted">Админ: редактирование участников и побед</div>
+        <div class="small muted">Настройки: <button id="btn-clear" class="btn">Clear data</button></div>
+      </div>
+
+      <label class="small muted">Вставить или заменить таблицу CSV (username,points,wins)</label>
+      <textarea id="csv-text" placeholder="@user,points,wins\n@alex,150,1"></textarea>
+      <div class="controls">
+        <button id="btn-parse" class="primary">Parse & Load</button>
+        <button id="btn-append" class="btn">Append</button>
+        <button id="btn-save-local" class="btn">Save to localStorage</button>
+        <div style="flex:1"></div>
+        <div class="small muted">Выбрать победителей недели:</div>
+        <select id="select-winner" style="padding:8px;border-radius:8px;border:1px solid var(--border);background:transparent;color:#e6eef6">
+          <option value="">— выбрать —</option>
+        </select>
+        <button id="btn-add-winner" class="btn">Add winner (mark +1 win)</button>
+        <button id="btn-add-week" class="primary">Add 3 winners as week</button>
+      </div>
+
+      <div style="margin-top:8px;">
+        <h4 style="margin:6px 0">Текущие участники (по username)</h4>
+        <div id="admin-list" style="max-height:220px;overflow:auto;border:1px dashed var(--border);border-radius:8px;padding:8px"></div>
+      </div>
+
+      <div style="display:flex;justify-content:flex-end;margin-top:8px;gap:8px">
+        <button id="admin-logout" class="btn">Logout</button>
+        <button id="admin-close-2" class="primary">Close panel</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/*
+ Mix NFT Rewards — single page demo
+ - Data model: participants = [{username, points: number, wins: number}]
+ - history = [{weekDate: 'YYYY-MM-DD', winners: ['@a','@b','@c']}]
+ - Persistence: localStorage keys 'mix_participants' and 'mix_history'
+ - Admin password default: 'mixadmin' (change in code if needed)
+*/
+
+// ----- Config -----
+const ADMIN_PASSWORD = 'mixadmin'; // change if needed
+const DISPLAY_LIMIT = 50;
+
+// ----- Utilities -----
+function qs(id){return document.getElementById(id);}
+function saveParticipants(arr){localStorage.setItem('mix_participants', JSON.stringify(arr));}
+function loadParticipants(){try{return JSON.parse(localStorage.getItem('mix_participants'))||[];}catch(e){return []}}
+function saveHistory(h){localStorage.setItem('mix_history', JSON.stringify(h));}
+function loadHistory(){try{return JSON.parse(localStorage.getItem('mix_history'))||[];}catch(e){return []}}
+function download(filename, data){ const blob = new Blob([data], {type: 'text/plain;charset=utf-8'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
+function parseCSV(text){
+  const lines = text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length);
+  const rows = [];
+  for(let ln of lines){
+    // allow commas inside if quoted? simple split by comma
+    const parts = ln.split(',').map(p=>p.trim());
+    if(parts.length >= 1){
+      const username = parts[0].startsWith('@') ? parts[0] : ('@' + parts[0].replace(/^@/,''));
+      const points = Number(parts[1]||0) || 0;
+      const wins = Number(parts[2]||0) || 0;
+      rows.push({username, points, wins});
+    }
+  }
+  return rows;
+}
+function toCSV(arr){
+  const header = 'username,points,wins';
+  return header + '\\n' + arr.map(r => [r.username, r.points, r.wins].join(',')).join('\\n');
+}
+
+// ----- App state -----
+let participants = loadParticipants();
+let history = loadHistory();
+
+// ----- Rendering -----
+function renderRanking(filter=''){
+  const tbody = qs('ranking-body');
+  tbody.innerHTML = '';
+  const sorted = participants.slice().sort((a,b)=>b.points - a.points || b.wins - a.wins || a.username.localeCompare(b.username));
+  const filtered = filter ? sorted.filter(p => p.username.toLowerCase().includes(filter.toLowerCase())) : sorted;
+  qs('total-count').textContent = participants.length;
+  const limit = DISPLAY_LIMIT;
+  qs('display-count').textContent = Math.min(limit, filtered.length);
+  filtered.slice(0, limit).forEach((p, idx) => {
+    const tr = document.createElement('tr');
+    if(idx===0) tr.classList.add('top1');
+    tr.innerHTML = `<td>${idx+1}</td><td>${p.username}</td><td>${p.points}</td><td>${p.wins}</td>
+      <td style="text-align:right"><button data-user="${p.username}" class="btn btn-edit small">Edit</button></td>`;
+    tbody.appendChild(tr);
+  });
+  // attach edit buttons
+  document.querySelectorAll('.btn-edit').forEach(btn=>{
+    btn.addEventListener('click', ()=>openEditor(btn.dataset.user));
+  });
+}
+
+function renderHistory(){
+  const el = qs('history');
+  el.innerHTML = '';
+  if(history.length===0){ el.innerHTML = '<div class="small muted">Ещё нет проведённых недель</div>'; return; }
+  history.slice().reverse().forEach(week=>{
+    const div = document.createElement('div');
+    div.style.padding='8px'; div.style.borderBottom='1px dashed rgba(255,255,255,0.03)';
+    div.innerHTML = `<div style="display:flex;justify-content:space-between;align-items:center">
+      <div><strong>${week.weekDate}</strong> <span class="small muted">— winners:</span> ${week.winners.map(w=>' <span class="winner-badge">'+w+'</span>').join(' ')}</div>
+      <div><button class="btn btn-export-week small" data-week="${week.weekDate}">Export</button></div>
+      </div>`;
+    el.appendChild(div);
+  });
+  document.querySelectorAll('.btn-export-week').forEach(b=>{
+    b.addEventListener('click', e=>{
+      const w = history.find(h=>h.weekDate===b.dataset.week);
+      download(`mix_week_${b.dataset.week}.json`, JSON.stringify(w, null, 2));
+    });
+  });
+}
+
+function renderAdminList(){
+  const container = qs('admin-list');
+  container.innerHTML = '';
+  const sorted = participants.slice().sort((a,b)=>b.points - a.points);
+  sorted.forEach(p=>{
+    const div = document.createElement('div');
+    div.style.display='flex'; div.style.justifyContent='space-between'; div.style.alignItems='center'; div.style.padding='6px 0';
+    div.innerHTML = `<div><strong>${p.username}</strong> <span class="small muted">(${p.points} pts, ${p.wins} wins)</span></div>
+      <div style="display:flex;gap:6px">
+        <button class="btn admin-edit" data-user="${p.username}">Edit</button>
+        <button class="btn admin-del" data-user="${p.username}">Del</button>
+      </div>`;
+    container.appendChild(div);
+  });
+  document.querySelectorAll('.admin-edit').forEach(b=>b.addEventListener('click', ()=>openEditor(b.dataset.user)));
+  document.querySelectorAll('.admin-del').forEach(b=>{
+    b.addEventListener('click', ()=>{
+      if(confirm('Удалить пользователя ' + b.dataset.user + '?')){
+        participants = participants.filter(p=>p.username !== b.dataset.user);
+        saveParticipants(participants);
+        refreshAll();
+      }
+    });
+  });
+  // update select of winners
+  const sel = qs('select-winner'); sel.innerHTML = '<option value="">— выбрать —</option>';
+  participants.slice().sort((a,b)=>b.points-a.points).forEach(p=>{
+    const opt = document.createElement('option'); opt.value=p.username; opt.textContent = p.username + ' ('+p.points+'pts)';
+    sel.appendChild(opt);
+  });
+}
+
+// editor for single user
+function openEditor(username){
+  const p = participants.find(x=>x.username===username);
+  const name = prompt('Username', p ? p.username : '@');
+  if(!name) return;
+  const pts = Number(prompt('Points', p ? p.points : 0)) || 0;
+  const wins = Number(prompt('Wins', p ? p.wins : 0)) || 0;
+  // update or add
+  const existing = participants.find(x=>x.username===name);
+  if(existing && existing.username !== username){
+    if(!confirm('Пользователь с таким username уже существует. Перезаписать?')) return;
+    participants = participants.filter(x=>x.username !== existing.username);
+  }
+  participants = participants.filter(x=>x.username !== username);
+  participants.push({username: name.startsWith('@')?name:'@'+name, points:pts, wins:wins});
+  saveParticipants(participants);
+  refreshAll();
+}
+
+// ----- Actions -----
+function refreshAll(){ renderRanking(qs('search').value); renderHistory(); renderAdminList(); }
+
+// Admin modal handlers
+qs('btn-admin').addEventListener('click', ()=>{ qs('admin-modal').style.display='flex'; });
+qs('admin-cancel').addEventListener('click', ()=>{ qs('admin-modal').style.display='none'; });
+qs('admin-close-2').addEventListener('click', ()=>{ qs('admin-modal').style.display='none'; });
+qs('btn-clear').addEventListener('click', ()=>{
+  if(!confirm('Очистить все локальные данные приложения?')) return;
+  participants = []; history = [];
+  saveParticipants(participants); saveHistory(history);
+  refreshAll();
+});
+
+// login
+qs('admin-login-btn').addEventListener('click', ()=>{
+  const v = qs('admin-password').value;
+  if(v === ADMIN_PASSWORD){
+    qs('admin-login').style.display='none';
+    qs('admin-ui').style.display='block';
+    qs('csv-text').value = '';
+    renderAdminList();
+  } else alert('Неверный пароль');
+});
+qs('admin-logout').addEventListener('click', ()=>{
+  qs('admin-login').style.display='block';
+  qs('admin-ui').style.display='none';
+  qs('admin-password').value = '';
+});
+
+// parse and load CSV
+qs('btn-parse').addEventListener('click', ()=>{
+  const txt = qs('csv-text').value;
+  if(!txt.trim()){ alert('Вставьте CSV в поле'); return; }
+  const rows = parseCSV(txt);
+  participants = rows; saveParticipants(participants);
+  refreshAll();
+  alert('Таблица загружена. Всего участников: ' + participants.length);
+});
+qs('btn-append').addEventListener('click', ()=>{
+  const txt = qs('csv-text').value;
+  if(!txt.trim()){ alert('Вставьте CSV'); return; }
+  const rows = parseCSV(txt);
+  // append or merge by username (replace)
+  rows.forEach(r=>{
+    const idx = participants.findIndex(p=>p.username.toLowerCase()===r.username.toLowerCase());
+    if(idx>=0) participants[idx] = r; else participants.push(r);
+  });
+  saveParticipants(participants);
+  refreshAll();
+  alert('Добавлено/обновлено ' + rows.length + ' записей');
+});
+
+// file import
+qs('file-input').addEventListener('change', (e)=>{
+  const f = e.target.files[0];
+  if(!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    const txt = reader.result;
+    if(f.name.toLowerCase().endsWith('.json')){
+      try{
+        const obj = JSON.parse(txt);
+        if(Array.isArray(obj)) participants = obj;
+        else if(obj.participants) participants = obj.participants;
+        saveParticipants(participants); refreshAll(); alert('JSON loaded');
+      } catch(e){ alert('JSON parse error') }
+    } else {
+      // treat as CSV
+      const rows = parseCSV(txt);
+      participants = rows; saveParticipants(participants); refreshAll(); alert('CSV loaded');
+    }
+  };
+  reader.readAsText(f);
+  e.target.value = ''; // reset
+});
+
+// add single winner increment
+qs('btn-add-winner').addEventListener('click', ()=>{
+  const user = qs('select-winner').value;
+  if(!user){ alert('Выбери пользователя'); return; }
+  const p = participants.find(x=>x.username===user);
+  if(!p){ alert('Не найден'); return; }
+  p.wins = (p.wins||0) + 1;
+  saveParticipants(participants); refreshAll();
+  alert('Win +1 for ' + user);
+});
+
+// add week: choose 3 winners from select (prompt list) or from currently selected options
+qs('btn-add-week').addEventListener('click', ()=>{
+  // let admin pick 3 winners via prompt (comma separated) or choose top3
+  const input = prompt('Введите 3 username победителей через запятую, или оставьте пустым чтобы взять топ-3 по баллам');
+  let winners = [];
+  if(!input) {
+    winners = participants.slice().sort((a,b)=>b.points-a.points).slice(0,3).map(p=>p.username);
+  } else {
+    winners = input.split(',').map(s=>s.trim()).filter(Boolean).map(s=> s.startsWith('@')?s:'@'+s);
+    if(winners.length !== 3 && !confirm('Вы выбрали не 3 победителя. Продолжить?')) return;
+  }
+  // increment wins
+  winners.forEach(w=>{
+    const p = participants.find(x=>x.username===w);
+    if(p) p.wins = (p.wins||0)+1;
+    else {
+      // add new participant with 0 points and 1 win
+      participants.push({username:w, points:0, wins:1});
+    }
+  });
+  // record week
+  const today = new Date();
+  const weekDate = today.toISOString().slice(0,10);
+  history.push({weekDate, winners});
+  saveParticipants(participants); saveHistory(history);
+  refreshAll();
+  alert('Недельные победители добавлены: ' + winners.join(', '));
+});
+
+// export JSON / CSV
+qs('btn-export').addEventListener('click', ()=> download('mix_participants.json', JSON.stringify({participants, history}, null, 2)));
+qs('btn-export-json').addEventListener('click', ()=> download('mix_participants.json', JSON.stringify(participants, null, 2)));
+qs('btn-export-csv').addEventListener('click', ()=> download('mix_participants.csv', toCSV(participants)));
+
+// quick paste modal
+qs('btn-paste').addEventListener('click', ()=>{
+  qs('admin-modal').style.display='flex';
+  qs('admin-login').style.display='none';
+  qs('admin-ui').style.display='block';
+  qs('csv-text').value = '';
+  renderAdminList();
+});
+
+// import CSV via header button
+qs('btn-import').addEventListener('click', ()=> {
+  const url = prompt('Вставьте публичный URL CSV (например, Google Sheets "Publish to web" -> CSV). URL:');
+  if(!url) return;
+  fetch(url).then(r=>r.text()).then(txt=>{
+    const rows = parseCSV(txt);
+    participants = rows; saveParticipants(participants); refreshAll(); alert('CSV загружен из URL. Участников: ' + participants.length);
+  }).catch(err=>alert('Ошибка загрузки: '+err));
+});
+
+// search
+qs('search').addEventListener('input', ()=> renderRanking(qs('search').value));
+
+// paste CSV into textarea helper (admin)
+window.addEventListener('DOMContentLoaded', ()=>{
+  refreshAll();
+});
+</script>
+
+</body>
+</html>
